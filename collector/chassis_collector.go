@@ -7,7 +7,7 @@ import (
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
 	"sync"
-	"os"
+	//"os"
 
 )
 
@@ -185,10 +185,50 @@ var (
 				nil,
 			),
 		},
+		"chassis_power_powercontrol_powerallocatedwatts": {
+			desc: prometheus.NewDesc(
+				prometheus.BuildFQName(namespace, ChassisSubsystem, "power_allocated_watts"),
+				"Warning Threshold",
+				ChassisPowerSupplyLabelNames,
+				nil,
+			),
+		},
 		"chassis_power_powercontrol_powerrequestedwatts": {
 			desc: prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, ChassisSubsystem, "power_capacity_watts"),
-				"Failure Threshold",
+				prometheus.BuildFQName(namespace, ChassisSubsystem, "power_requested_watts"),
+				"Unkwn Value",
+				ChassisPowerSupplyLabelNames,
+				nil,
+			),
+		},
+		"chassis_power_powermetric_averageconsumedwatts": {
+			desc: prometheus.NewDesc(
+				prometheus.BuildFQName(namespace, ChassisSubsystem, "power_average_consumed_watts"),
+				"Unkwn Value",
+				ChassisPowerSupplyLabelNames,
+				nil,
+			),
+		},
+		"chassis_power_powermetric_intervalinmin": {
+			desc: prometheus.NewDesc(
+				prometheus.BuildFQName(namespace, ChassisSubsystem, "interval_in_min"),
+				"Unkwn Value",
+				ChassisPowerSupplyLabelNames,
+				nil,
+			),
+		},
+		"chassis_power_powermetric_maxconsumedwatts": {
+			desc: prometheus.NewDesc(
+				prometheus.BuildFQName(namespace, ChassisSubsystem, "max_consumed_watts"),
+				"Unkwn Value",
+				ChassisPowerSupplyLabelNames,
+				nil,
+			),
+		},
+		"chassis_power_powermetric_minconsumedwatts": {
+			desc: prometheus.NewDesc(
+				prometheus.BuildFQName(namespace, ChassisSubsystem, "min_consumed_watts"),
+				"Unkwn Value",
 				ChassisPowerSupplyLabelNames,
 				nil,
 			),
@@ -305,14 +345,11 @@ func (c *ChassisCollector) Collect(ch chan<- prometheus.Metric) {
 				wg99.Add(len(chassisPowerControls))
 
 				for _, chassisPowerControl := range chassisPowerControls {
-					os.Stderr.WriteString(" !POWER CONTROL! ")
-					//os.Stderr.WriteString(chassisPowerControl)
+
 					go parseChassisPowerControl(ch, chassisID, chassisPowerControl, wg99)
 
 					//TODO: do we need to check PowerControl.Status here?
 					//TODO: we can also add PowerLimit, not in current use case
-
-					chassisPowerMetrics := chassisPowerControl.PowerMetrics
 
 					/*wg100 := &sync.WaitGroup{}
 					wg100.Add(len(chassisPowerMetrics))
@@ -323,8 +360,12 @@ func (c *ChassisCollector) Collect(ch chan<- prometheus.Metric) {
 						os.Stderr.WriteString("Average Consumed Watts: "+s)
 					}
 					*/
-					s := fmt.Sprintf("%f",chassisPowerMetrics.AverageConsumedWatts)
-					os.Stderr.WriteString("Average Consumed Watts: "+s)
+
+					chassisPowerMetric := chassisPowerControl.PowerMetrics
+
+					wg100 := &sync.WaitGroup{}
+					wg100.Add(1)
+					go parseChassisPowerMetric(ch, chassisID, chassisPowerMetric, wg100)
 				}
 			}
 
@@ -430,32 +471,30 @@ func parseChassisPowerInfoPowerSupply(ch chan<- prometheus.Metric, chassisID str
 	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powersupply_power_capacity_watts"].desc, prometheus.GaugeValue, float64(chassisPowerInfoPowerSupplyPowerCapacityWatts), chassisPowerSupplyLabelvalues...)
 }
 
-func parseChassisPowerControl(ch chan<- prometheus.Metric, chassisID string, chassisPowerControl redfish.PowerControl, wg *sync.WaitGroup) {
-
-	//os.Stderr.WriteString(chassisID)
-
-	/*s := fmt.Sprintf("%f",chassisPowerControl.PowerConsumedWatts )
-	os.Stderr.WriteString("Consumed Watts: "+s)
-	paw := fmt.Sprintf("%f",chassisPowerControl.PowerAllocatedWatts) 
-	os.Stderr.WriteString("Allocated Watts: "+paw)
-	pa := fmt.Sprintf("%f",chassisPowerControl.PowerAvailableWatts )
-	os.Stderr.WriteString("PowerAvailableWatts : "+pa)
-	pcw := fmt.Sprintf("%f",chassisPowerControl.PowerCapacityWatts )
-	os.Stderr.WriteString("PowerCapacityWatts  : "+pcw)*/
-
-	// TODO: this might be a worthy label, can also add Name thought its not listed and doesn't have anything useful ex: "MemberId":"PowerControl", "Name":"System Power Control"
-	//s := fmt.Sprintf("%f",chassisPowerControl.PowerCapacityWatts )
-	os.Stderr.WriteString(chassisPowerControl.MemberID)
+func parseChassisPowerMetric(ch chan<- prometheus.Metric, chassisID string, chassisPowerMetric redfish.PowerMetric, wg *sync.WaitGroup) {
 
 	defer wg.Done()
-	chassisPowerControlLabelvalues := []string{"power_supply", chassisID}
+	chassisPowerMetricLabelvalues := []string{"power_supply", chassisID, "", ""}
+
+	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powermetric_averageconsumedwatts"].desc, prometheus.GaugeValue, float64(chassisPowerMetric.AverageConsumedWatts ), chassisPowerMetricLabelvalues...)
+	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powermetric_intervalinmin"].desc, prometheus.GaugeValue, float64(chassisPowerMetric.IntervalInMin ), chassisPowerMetricLabelvalues...)
+	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powermetric_maxconsumedwatts"].desc, prometheus.GaugeValue, float64(chassisPowerMetric.MaxConsumedWatts ), chassisPowerMetricLabelvalues...)
+	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powermetric_minconsumedwatts"].desc, prometheus.GaugeValue, float64(chassisPowerMetric.MinConsumedWatts ), chassisPowerMetricLabelvalues...)
+}
+
+func parseChassisPowerControl(ch chan<- prometheus.Metric, chassisID string, chassisPowerControl redfish.PowerControl, wg *sync.WaitGroup) {
+
+	// TODO: this might be a worthy label, can also add Name thought its not listed and doesn't have anything useful ex: "MemberId":"PowerControl", "Name":"System Power Control"
+	//os.Stderr.WriteString(chassisPowerControl.MemberID)
+
+	defer wg.Done()
+	chassisPowerControlLabelvalues := []string{"power_supply", chassisID, "", ""}
 
 	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powercontrol_powerconsumedwatts"].desc, prometheus.GaugeValue, float64(chassisPowerControl.PowerConsumedWatts), chassisPowerControlLabelvalues...)
 	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powercontrol_powerallocatedwatts"].desc, prometheus.GaugeValue, float64(chassisPowerControl.PowerAllocatedWatts), chassisPowerControlLabelvalues...)
 	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powercontrol_poweravailablewatts"].desc, prometheus.GaugeValue, float64(chassisPowerControl.PowerAvailableWatts), chassisPowerControlLabelvalues...)
 	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powercontrol_powercapacitywatts"].desc, prometheus.GaugeValue, float64(chassisPowerControl.PowerCapacityWatts), chassisPowerControlLabelvalues...)
 	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powercontrol_powerrequestedwatts"].desc, prometheus.GaugeValue, float64(chassisPowerControl.PowerRequestedWatts), chassisPowerControlLabelvalues...)
-
 }
 
 
