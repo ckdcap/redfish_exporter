@@ -280,9 +280,8 @@ func (c *ChassisCollector) Collect(ch chan<- prometheus.Metric) {
 
 			if chassisPowerInfo, err := chassis.Power(); err != nil || chassisPowerInfo == nil {
 				log.Infof("Errors Getting powerinf from chassis : %s", err)
-                                //os.Stderr.WriteString("cats")
+
 			} else {
-				//os.Stderr.WriteString("dogs")
 				// power votages
 				chassisPowerInfoVoltages := chassisPowerInfo.Voltages
 				wg3 := &sync.WaitGroup{}
@@ -297,19 +296,36 @@ func (c *ChassisCollector) Collect(ch chan<- prometheus.Metric) {
 				wg4 := &sync.WaitGroup{}
 				wg4.Add(len(chassisPowerInfoPowerSupplies))
 				for _, chassisPowerInfoPowerSupply := range chassisPowerInfoPowerSupplies {
-					// os.Stderr.WriteString("birbs")
 					go parseChassisPowerInfoPowerSupply(ch, chassisID, chassisPowerInfoPowerSupply, wg4)
 				}
 
 				chassisPowerControls := chassisPowerInfo.PowerControl
+
 				wg99 := &sync.WaitGroup{}
 				wg99.Add(len(chassisPowerControls))
+
 				for _, chassisPowerControl := range chassisPowerControls {
-					os.Stderr.WriteString("!")
+					os.Stderr.WriteString(" !POWER CONTROL! ")
 					//os.Stderr.WriteString(chassisPowerControl)
 					go parseChassisPowerControl(ch, chassisID, chassisPowerControl, wg99)
-				}
 
+					//TODO: do we need to check PowerControl.Status here?
+					//TODO: we can also add PowerLimit, not in current use case
+
+					chassisPowerMetrics := chassisPowerControl.PowerMetrics
+
+					/*wg100 := &sync.WaitGroup{}
+					wg100.Add(len(chassisPowerMetrics))
+
+					for _, chassisPowerMetric  := range chassisPowerMetrics {
+						os.Stderr.WriteString(" !POWER METRICS! ")
+						s := fmt.Sprintf("%f",chassisPowerMetric.AverageConsumedWatts)
+						os.Stderr.WriteString("Average Consumed Watts: "+s)
+					}
+					*/
+					s := fmt.Sprintf("%f",chassisPowerMetrics.AverageConsumedWatts)
+					os.Stderr.WriteString("Average Consumed Watts: "+s)
+				}
 			}
 
 			// process NetapAdapter
@@ -427,7 +443,7 @@ func parseChassisPowerControl(ch chan<- prometheus.Metric, chassisID string, cha
 	pcw := fmt.Sprintf("%f",chassisPowerControl.PowerCapacityWatts )
 	os.Stderr.WriteString("PowerCapacityWatts  : "+pcw)*/
 
-	// TODO: this might be a worthy label
+	// TODO: this might be a worthy label, can also add Name thought its not listed and doesn't have anything useful ex: "MemberId":"PowerControl", "Name":"System Power Control"
 	//s := fmt.Sprintf("%f",chassisPowerControl.PowerCapacityWatts )
 	os.Stderr.WriteString(chassisPowerControl.MemberID)
 
