@@ -16,7 +16,7 @@ type systemMetric struct {
 }
 
 var (
-	SystemSubsystem                   = "system"
+	SystemSubsystem                         = "system"
 	SystemLabelNames                  = []string{"hostname", "resource", "system_id"}
 	SystemMemoryLabelNames            = []string{"hostname", "resource", "memory", "memory_id"}
 	SystemProcessorLabelNames         = []string{"hostname", "resource", "processor", "processor_id"}
@@ -296,6 +296,7 @@ type SystemCollector struct {
 
 // NewSystemCollector returns a collector that collecting memory statistics
 func NewSystemCollector(namespace string, redfishClient *gofish.APIClient) *SystemCollector {
+	var ()
 	return &SystemCollector{
 		redfishClient: redfishClient,
 		metrics:       systemMetrics,
@@ -349,7 +350,7 @@ func (s *SystemCollector) Collect(ch chan<- prometheus.Metric) {
 			if systemStateValue, ok := parseCommonStatusState(systemState); ok {
 				ch <- prometheus.MustNewConstMetric(s.metrics["system_state"].desc, prometheus.GaugeValue, systemStateValue, systemLabelValues...)
 			}
-			if systemPowerStateValue, ok := parseCommonPowerState(systemPowerState); ok {
+			if systemPowerStateValue, ok := parseSystemPowerState(systemPowerState); ok {
 				ch <- prometheus.MustNewConstMetric(s.metrics["system_power_state"].desc, prometheus.GaugeValue, systemPowerStateValue, systemLabelValues...)
 
 			}
