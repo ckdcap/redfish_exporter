@@ -42,7 +42,8 @@ func metricsHandler() http.HandlerFunc {
 		var hostConfig *HostConfig
 		var err error
 		if hostConfig, err = sc.HostConfigForTarget(target); err != nil {
-			log.Fatalf("Error getting credentialfor target %s file: %s", target, err)
+			log.Errorf("Error getting credentialfor target %s file: %s", target, err)
+			return
 		}
 
 		collector := collector.NewRedfishCollector(target, hostConfig.Username, hostConfig.Password)

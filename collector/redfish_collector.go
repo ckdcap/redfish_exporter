@@ -95,7 +95,7 @@ func (r *RedfishCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 	
 	ch <- r.redfishUp
-	ch <- prometheus.MustNewConstMetric(totalScrapeDurationDesc, prometheus.GaugeValue, time.Since(scrapeTime).Seconds(), )
+	ch <- prometheus.MustNewConstMetric(totalScrapeDurationDesc, prometheus.GaugeValue, time.Since(scrapeTime).Seconds( ))
 }
 
 func newRedfishClient(host string, username string, password string) (*gofish.APIClient, error) {

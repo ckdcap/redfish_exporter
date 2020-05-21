@@ -7,6 +7,7 @@ import (
 	"github.com/stmcginnis/gofish"
 	"github.com/stmcginnis/gofish/redfish"
 	"sync"
+	"os"
 
 )
 
@@ -159,6 +160,14 @@ var (
 				nil,
 			),
 		},
+		"chassis_power_powercontrol_powerallocatedwatts": {
+			desc: prometheus.NewDesc(
+				prometheus.BuildFQName(namespace, ChassisSubsystem, "power_allocated_watts"),
+				"heres testing some stuff lol",
+				ChassisPowerSupplyLabelNames,
+				nil,
+			),
+		},
 	}
 )
 
@@ -210,6 +219,7 @@ func (c *ChassisCollector) Collect(ch chan<- prometheus.Metric) {
 		// process the chassises
 		for _, chassis := range chassises {
 			chassisID := chassis.ID
+			//os.Stderr.WriteString(chassis.ID)
 			chassisStatus := chassis.Status
 			chassisStatusState := chassisStatus.State
 			chassisStatusHealth := chassisStatus.Health
@@ -221,7 +231,7 @@ func (c *ChassisCollector) Collect(ch chan<- prometheus.Metric) {
 				ch <- prometheus.MustNewConstMetric(c.metrics["chassis_state"].desc, prometheus.GaugeValue, chassisStatusStateValue, ChassisLabelValues...)
 			}
 
-			if chassisThermal, err := chassis.Thermal(); err != nil {
+			if chassisThermal, err := chassis.Thermal(); err != nil || chassisThermal == nil {
 				log.Infof("Errors Getting Thermal from chassis : %s", err)
 			} else {
 				// process temperature
@@ -243,9 +253,11 @@ func (c *ChassisCollector) Collect(ch chan<- prometheus.Metric) {
 				}
 			}
 
-			if chassisPowerInfo, err := chassis.Power(); err != nil {
+			if chassisPowerInfo, err := chassis.Power(); err != nil || chassisPowerInfo == nil {
 				log.Infof("Errors Getting powerinf from chassis : %s", err)
+                                //os.Stderr.WriteString("cats")
 			} else {
+				//os.Stderr.WriteString("dogs")
 				// power votages
 				chassisPowerInfoVoltages := chassisPowerInfo.Voltages
 				wg3 := &sync.WaitGroup{}
@@ -260,14 +272,24 @@ func (c *ChassisCollector) Collect(ch chan<- prometheus.Metric) {
 				wg4 := &sync.WaitGroup{}
 				wg4.Add(len(chassisPowerInfoPowerSupplies))
 				for _, chassisPowerInfoPowerSupply := range chassisPowerInfoPowerSupplies {
-
+					// os.Stderr.WriteString("birbs")
 					go parseChassisPowerInfoPowerSupply(ch, chassisID, chassisPowerInfoPowerSupply, wg4)
 				}
+
+				chassisPowerControls := chassisPowerInfo.PowerControl
+				wg99 := &sync.WaitGroup{}
+				wg99.Add(len(chassisPowerControls))
+				for _, chassisPowerControl := range chassisPowerControls {
+					os.Stderr.WriteString("!")
+					//os.Stderr.WriteString(chassisPowerControl)
+					go parseChassisPowerControl(ch, chassisID, chassisPowerControl, wg99)
+				}
+
 			}
 
 			// process NetapAdapter
 
-			if networkAdapters, err := chassis.NetworkAdapters(); err != nil {
+			if networkAdapters, err := chassis.NetworkAdapters(); err != nil || networkAdapters == nil{
 				log.Infof("Errors Getting NetworkAdapters from chassis : %s", err)
 			} else {
 				wg5 := &sync.WaitGroup{}
@@ -288,8 +310,8 @@ func (c *ChassisCollector) Collect(ch chan<- prometheus.Metric) {
 func parseChassisTemperature(ch chan<- prometheus.Metric, chassisID string, chassisTemperature redfish.Temperature, wg *sync.WaitGroup) {
 	defer wg.Done()
 	chassisTemperatureSensorName := chassisTemperature.Name
-	//chassisTemperatureSensorName := chassisTemperature.MemberID
-	chassisTemperatureSensorID := chassisTemperature.ID
+	//chassisTemperatureSensorName := chassisTemperature.ID
+	chassisTemperatureSensorID := chassisTemperature.MemberID
 	chassisTemperatureStatus := chassisTemperature.Status
 	//			chassisTemperatureStatusHealth :=chassisTemperatureStatus.Health
 	chassisTemperatureStatusState := chassisTemperatureStatus.State
@@ -306,9 +328,10 @@ func parseChassisTemperature(ch chan<- prometheus.Metric, chassisID string, chas
 }
 func parseChassisFan(ch chan<- prometheus.Metric, chassisID string, chassisFan redfish.Fan, wg *sync.WaitGroup) {
 	defer wg.Done()
-	chassisFanID := chassisFan.ID
+	//chassisFanID := chassisFan.ID
+        chassisFanID := chassisFan.MemberID
 	chassisFanName := chassisFan.Name
-	//chassisFanName := chassisFan.MemberID
+	//chassisFanName := chassisFan.ID
 	chassisFanStaus := chassisFan.Status
 	chassisFanStausHealth := chassisFanStaus.Health
 	chassisFanStausState := chassisFanStaus.State
@@ -331,8 +354,8 @@ func parseChassisFan(ch chan<- prometheus.Metric, chassisID string, chassisFan r
 func parseChassisPowerInfoVoltage(ch chan<- prometheus.Metric, chassisID string, chassisPowerInfoVoltage redfish.Voltage, wg *sync.WaitGroup) {
 	defer wg.Done()
 	chassisPowerInfoVoltageName := chassisPowerInfoVoltage.Name
-	//chassisPowerInfoVoltageName := chassisPowerInfoVoltage.MemberID
-	chassisPowerInfoVoltageID := chassisPowerInfoVoltage.ID
+	chassisPowerInfoVoltageID := chassisPowerInfoVoltage.MemberID
+	//chassisPowerInfoVoltageID := chassisPowerInfoVoltage.ID
 	chassisPowerInfoVoltageNameReadingVolts := chassisPowerInfoVoltage.ReadingVolts
 	chassisPowerInfoVoltageState := chassisPowerInfoVoltage.Status.State
 	chassisPowerVotageLabelvalues := []string{"power_votage", chassisID, chassisPowerInfoVoltageName, chassisPowerInfoVoltageID}
@@ -349,6 +372,10 @@ func parseChassisPowerInfoPowerSupply(ch chan<- prometheus.Metric, chassisID str
 	chassisPowerInfoPowerSupplyID := chassisPowerInfoPowerSupply.ID
 	chassisPowerInfoPowerSupplyPowerCapacityWatts := chassisPowerInfoPowerSupply.PowerCapacityWatts
 	chassisPowerInfoPowerSupplyLastPowerOutputWatts := chassisPowerInfoPowerSupply.LastPowerOutputWatts
+
+	//s := fmt.Sprintf("%f",chassisPowerInfoPowerSupply.LastPowerOutputWatts)
+	//os.Stderr.WriteString("[ "+s+"W ]"+chassisID) 
+
 	chassisPowerInfoPowerSupplyState := chassisPowerInfoPowerSupply.Status.State
 	chassisPowerInfoPowerSupplyHealth := chassisPowerInfoPowerSupply.Status.Health
 	chassisPowerSupplyLabelvalues := []string{"power_supply", chassisID, chassisPowerInfoPowerSupplyName, chassisPowerInfoPowerSupplyID}
@@ -361,6 +388,36 @@ func parseChassisPowerInfoPowerSupply(ch chan<- prometheus.Metric, chassisID str
 	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powersupply_last_power_output_watts"].desc, prometheus.GaugeValue, float64(chassisPowerInfoPowerSupplyLastPowerOutputWatts), chassisPowerSupplyLabelvalues...)
 	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powersupply_power_capacity_watts"].desc, prometheus.GaugeValue, float64(chassisPowerInfoPowerSupplyPowerCapacityWatts), chassisPowerSupplyLabelvalues...)
 }
+
+func parseChassisPowerControl(ch chan<- prometheus.Metric, chassisID string, chassisPowerControl redfish.PowerControl, wg *sync.WaitGroup) {
+	
+	defer wg.Done()
+	os.Stderr.WriteString(chassisID)
+
+	s := fmt.Sprintf("%f",chassisPowerControl.PowerConsumedWatts )
+        os.Stderr.WriteString("Consumed Watts: "+s)
+	
+	paw := fmt.Sprintf("%f",chassisPowerControl.PowerAllocatedWatts) 
+	os.Stderr.WriteString("Allocated Watts: "+paw)
+
+	pa := fmt.Sprintf("%f",chassisPowerControl.PowerAvailableWatts )
+	os.Stderr.WriteString("PowerAvailableWatts : "+pa)
+
+	pcw := fmt.Sprintf("%f",chassisPowerControl.PowerCapacityWatts )
+	os.Stderr.WriteString("PowerCapacityWatts  : "+pcw)
+
+	//s := fmt.Sprintf("%f",chassisPowerControl.PowerLimit)
+	//s.Stderr.WriteString("PowerCapacityWatts  : "+s)
+
+	//s := fmt.Sprintf("%f",chassisPowerControl.PowerLimit)
+	//s.Stderr.WriteString("PowerCapacityWatts  : "+s)
+
+	chassisPowerControlLabelvalues := []string{"power_supply", chassisID, "", ""}
+
+	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powercontrol_powerallocatedwatts"].desc, prometheus.GaugeValue, float64(chassisPowerControl.PowerAllocatedWatts), chassisPowerControlLabelvalues...)
+
+}
+
 
 func parseNetworkAdapter(ch chan<- prometheus.Metric, chassisID string, networkAdapter *redfish.NetworkAdapter, wg *sync.WaitGroup) {
 
