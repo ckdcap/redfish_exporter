@@ -13,6 +13,7 @@ import (
 
 // A ChassisCollector implements the prometheus.Collector.
 
+//noinspection GoInvalidCompositeLiteral
 var (
 	ChassisSubsystem = "chassis"
 	ChassisLabelNames = []string{"resource", "chassis_id"}
@@ -160,10 +161,26 @@ var (
 				nil,
 			),
 		},
-		"chassis_power_powercontrol_powerallocatedwatts": {
+		"chassis_power_powercontrol_powerconsumedwatts": {
 			desc: prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, ChassisSubsystem, "power_allocated_watts"),
-				"heres testing some stuff lol",
+				prometheus.BuildFQName(namespace, ChassisSubsystem, "power_consumed_watts"),
+				"Unkwn Value",
+				ChassisPowerSupplyLabelNames,
+				nil,
+			),
+		},
+		"chassis_power_powercontrol_poweravailablewatts": {
+			desc: prometheus.NewDesc(
+				prometheus.BuildFQName(namespace, ChassisSubsystem, "power_available_watts"),
+				"Unkwn Value",
+				ChassisPowerSupplyLabelNames,
+				nil,
+			),
+		},
+		"chassis_power_powercontrol_powercapacitywatts": {
+			desc: prometheus.NewDesc(
+				prometheus.BuildFQName(namespace, ChassisSubsystem, "power_capacity_watts"),
+				"Failure Threshold",
 				ChassisPowerSupplyLabelNames,
 				nil,
 			),
@@ -390,31 +407,25 @@ func parseChassisPowerInfoPowerSupply(ch chan<- prometheus.Metric, chassisID str
 }
 
 func parseChassisPowerControl(ch chan<- prometheus.Metric, chassisID string, chassisPowerControl redfish.PowerControl, wg *sync.WaitGroup) {
-	
-	defer wg.Done()
-	os.Stderr.WriteString(chassisID)
 
-	s := fmt.Sprintf("%f",chassisPowerControl.PowerConsumedWatts )
-        os.Stderr.WriteString("Consumed Watts: "+s)
-	
+	//os.Stderr.WriteString(chassisID)
+
+	/*s := fmt.Sprintf("%f",chassisPowerControl.PowerConsumedWatts )
+	os.Stderr.WriteString("Consumed Watts: "+s)
 	paw := fmt.Sprintf("%f",chassisPowerControl.PowerAllocatedWatts) 
 	os.Stderr.WriteString("Allocated Watts: "+paw)
-
 	pa := fmt.Sprintf("%f",chassisPowerControl.PowerAvailableWatts )
 	os.Stderr.WriteString("PowerAvailableWatts : "+pa)
-
 	pcw := fmt.Sprintf("%f",chassisPowerControl.PowerCapacityWatts )
-	os.Stderr.WriteString("PowerCapacityWatts  : "+pcw)
+	os.Stderr.WriteString("PowerCapacityWatts  : "+pcw)*/
 
-	//s := fmt.Sprintf("%f",chassisPowerControl.PowerLimit)
-	//s.Stderr.WriteString("PowerCapacityWatts  : "+s)
+	defer wg.Done()
+	chassisPowerControlLabelvalues := []string{"power_supply", chassisID}
 
-	//s := fmt.Sprintf("%f",chassisPowerControl.PowerLimit)
-	//s.Stderr.WriteString("PowerCapacityWatts  : "+s)
-
-	chassisPowerControlLabelvalues := []string{"power_supply", chassisID, "", ""}
-
+	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powercontrol_powerconsumedwatts"].desc, prometheus.GaugeValue, float64(chassisPowerControl.PowerConsumedWatts), chassisPowerControlLabelvalues...)
 	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powercontrol_powerallocatedwatts"].desc, prometheus.GaugeValue, float64(chassisPowerControl.PowerAllocatedWatts), chassisPowerControlLabelvalues...)
+	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powercontrol_poweravailablewatts"].desc, prometheus.GaugeValue, float64(chassisPowerControl.PowerAvailableWatts), chassisPowerControlLabelvalues...)
+	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powercontrol_powercapacitywatts"].desc, prometheus.GaugeValue, float64(chassisPowerControl.PowerCapacityWatts), chassisPowerControlLabelvalues...)
 
 }
 
