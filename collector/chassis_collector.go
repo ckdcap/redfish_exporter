@@ -185,6 +185,14 @@ var (
 				nil,
 			),
 		},
+		"chassis_power_powercontrol_powerrequestedwatts": {
+			desc: prometheus.NewDesc(
+				prometheus.BuildFQName(namespace, ChassisSubsystem, "power_capacity_watts"),
+				"Failure Threshold",
+				ChassisPowerSupplyLabelNames,
+				nil,
+			),
+		},
 	}
 )
 
@@ -419,6 +427,10 @@ func parseChassisPowerControl(ch chan<- prometheus.Metric, chassisID string, cha
 	pcw := fmt.Sprintf("%f",chassisPowerControl.PowerCapacityWatts )
 	os.Stderr.WriteString("PowerCapacityWatts  : "+pcw)*/
 
+	// TODO: this might be a worthy label
+	//s := fmt.Sprintf("%f",chassisPowerControl.PowerCapacityWatts )
+	os.Stderr.WriteString(chassisPowerControl.MemberID)
+
 	defer wg.Done()
 	chassisPowerControlLabelvalues := []string{"power_supply", chassisID}
 
@@ -426,6 +438,7 @@ func parseChassisPowerControl(ch chan<- prometheus.Metric, chassisID string, cha
 	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powercontrol_powerallocatedwatts"].desc, prometheus.GaugeValue, float64(chassisPowerControl.PowerAllocatedWatts), chassisPowerControlLabelvalues...)
 	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powercontrol_poweravailablewatts"].desc, prometheus.GaugeValue, float64(chassisPowerControl.PowerAvailableWatts), chassisPowerControlLabelvalues...)
 	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powercontrol_powercapacitywatts"].desc, prometheus.GaugeValue, float64(chassisPowerControl.PowerCapacityWatts), chassisPowerControlLabelvalues...)
+	ch <- prometheus.MustNewConstMetric(chassisMetrics["chassis_power_powercontrol_powerrequestedwatts"].desc, prometheus.GaugeValue, float64(chassisPowerControl.PowerRequestedWatts), chassisPowerControlLabelvalues...)
 
 }
 
