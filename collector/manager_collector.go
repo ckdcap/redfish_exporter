@@ -101,7 +101,8 @@ func (m *ManagerCollector) Collect(ch chan<- prometheus.Metric) {
 			managerName := manager.Name
 			managerModel := manager.Model
 			managerType := fmt.Sprintf("%v", manager.ManagerType)
-			managerPowerState := manager.PowerState
+			//TODO: Fix Line below
+                        //managerPowerState := manager.PowerState
 			managerState := manager.Status.State
 			managerHealthState := manager.Status.Health
 
@@ -113,10 +114,10 @@ func (m *ManagerCollector) Collect(ch chan<- prometheus.Metric) {
 			if managerStateValue, ok := parseCommonStatusState(managerState); ok {
 				ch <- prometheus.MustNewConstMetric(m.metrics["manager_state"].desc, prometheus.GaugeValue, managerStateValue, ManagerLabelValues...)
 			}
-			if managerPowerStateValue, ok := parseCommonPowerState(managerPowerState); ok {
-				ch <- prometheus.MustNewConstMetric(m.metrics["manager_power_state"].desc, prometheus.GaugeValue, managerPowerStateValue, ManagerLabelValues...)
+			//if managerPowerStateValue, ok := parseCommonPowerState(managerPowerState); ok {
+			//	ch <- prometheus.MustNewConstMetric(m.metrics["manager_power_state"].desc, prometheus.GaugeValue, managerPowerStateValue, ManagerLabelValues...)
 
-			}
+			//}
 			managerLogContext.Info("collector scrape completed")
 		}
 		m.collectorScrapeStatus.WithLabelValues("manager").Set(float64(1))

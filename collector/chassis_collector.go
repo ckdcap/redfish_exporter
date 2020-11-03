@@ -235,7 +235,9 @@ var (
 				prometheus.BuildFQName(namespace, ChassisSubsystem, "min_consumed_watts"),
 				"Unkwn Value",
 				ChassisPowerSupplyLabelNames,
-
+                                nil,
+                        ),
+                },
 		"chassis_physical_security_sensor_rearm_method": {
 			desc: prometheus.NewDesc(
 				prometheus.BuildFQName(namespace, ChassisSubsystem, "physical_security_sensor_rearm_method"),
@@ -408,13 +410,12 @@ func (c *ChassisCollector) Collect(ch chan<- prometheus.Metric) {
 			} else if networkAdapters == nil {
 				chassisLogContext.WithField("operation", "chassis.NetworkAdapters()").Info("no network adapters data found")
 			} else {
-				wg5 := &sync.WaitGroup{}
-				wg5.Add(len(networkAdapters))
+				wg55 := &sync.WaitGroup{}
+				wg55.Add(len(networkAdapters))
 
 				for _, networkAdapter := range networkAdapters {
-					if err = parseNetworkAdapter(ch, chassisID, networkAdapter, wg5); err != nil {
+					go  parseNetworkAdapter(ch, chassisID, networkAdapter, wg55)
 						chassisLogContext.WithField("operation", "chassis.NetworkAdapters()").WithError(err).Error("error getting network ports from network adapter")
-					}
 				}
 			}
 
@@ -578,7 +579,8 @@ func parseNetworkAdapter(ch chan<- prometheus.Metric, chassisID string, networkA
 
 	//}
 	if networkPorts, err := networkAdapter.NetworkPorts(); err != nil {
-		return err
+		//return err
+		log.Infof("Errors Getting Network port from networkAdapter : %s", err)
 	} else {
 		wg6 := &sync.WaitGroup{}
 		wg6.Add(len(networkPorts))
@@ -586,7 +588,7 @@ func parseNetworkAdapter(ch chan<- prometheus.Metric, chassisID string, networkA
 			go parseNetworkPort(ch, chassisID, networkPort, networkAdapterName, networkAdapterID, wg6)
 		}
 	}
-	return nil
+	//return nil
 }
 
 func parseNetworkPort(ch chan<- prometheus.Metric, chassisID string, networkPort *redfish.NetworkPort, networkAdapterName string, networkAdapterID string, wg *sync.WaitGroup) {
