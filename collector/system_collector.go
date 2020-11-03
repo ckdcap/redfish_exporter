@@ -382,7 +382,7 @@ func (s *SystemCollector) Collect(ch chan<- prometheus.Metric) {
 			//memoriesLink := fmt.Sprintf("%sMemory/", systemOdataID)
 
 			//if memories, err := redfish.ListReferencedMemorys(s.redfishClient, memoriesLink); err != nil {
-			if memories, err := system.Memory(); err != nil {
+			if memories, err := system.Memory(); err != nil || memories == nil{
 				log.Infof("Errors Getting memory from computer system : %s", err)
 			} else {
 				wg1 := &sync.WaitGroup{}
@@ -399,7 +399,7 @@ func (s *SystemCollector) Collect(ch chan<- prometheus.Metric) {
 			//processorsLink := fmt.Sprintf("%sProcessors/", systemOdataID)
 
 			//if processors, err := redfish.ListReferencedProcessors(s.redfishClient, processorsLink); err != nil {
-			if processors, err := system.Processors(); err != nil {
+			if processors, err := system.Processors(); err != nil || processors == nil {
 				log.Infof("Errors Getting Processors from system: %s", err)
 			} else {
 				wg2 := &sync.WaitGroup{}
@@ -416,12 +416,12 @@ func (s *SystemCollector) Collect(ch chan<- prometheus.Metric) {
 			//storagesLink := fmt.Sprintf("%sStorage/", systemOdataID)
 
 			//if storages, err := redfish.ListReferencedStorages(s.redfishClient, storagesLink); err != nil {
-			if storages, err := system.Storage(); err != nil {
+			if storages, err := system.Storage(); err != nil || storages == nil {
 				log.Infof("Errors Getting storages from system: %s", err)
 			} else {
 				for _, storage := range storages {
 
-					if volumes, err := storage.Volumes(); err != nil {
+					if volumes, err := storage.Volumes(); err != nil || volumes == nil {
 						log.Infof("Errors Getting volumes  from system storage : %s", err)
 					} else {
 						wg3 := &sync.WaitGroup{}
@@ -433,7 +433,7 @@ func (s *SystemCollector) Collect(ch chan<- prometheus.Metric) {
 						}
 					}
 
-					if drives, err := storage.Drives(); err != nil {
+					if drives, err := storage.Drives(); err != nil || drives == nil {
 						log.Infof("Errors Getting volumes  from system storage : %s", err)
 					} else {
 						wg4 := &sync.WaitGroup{}
@@ -471,7 +471,7 @@ func (s *SystemCollector) Collect(ch chan<- prometheus.Metric) {
 			}
 			//process pci devices
 			//pciDevicesLink := fmt.Sprintf("%sPcidevice/", systemOdataID)
-			if pcieDevices, err := system.PCIeDevices(); err != nil {
+			if pcieDevices, err := system.PCIeDevices(); err != nil || pcieDevices == nil {
 				log.Infof("Errors Getting PCI-E devices from system: %s", err)
 			} else {
 				wg5 := &sync.WaitGroup{}
@@ -482,7 +482,7 @@ func (s *SystemCollector) Collect(ch chan<- prometheus.Metric) {
 			}
 
 			//process networkinterfaces
-			if networkInterfaces, err := system.NetworkInterfaces(); err != nil {
+			if networkInterfaces, err := system.NetworkInterfaces(); err != nil || networkInterfaces == nil {
 				log.Infof("Errors Getting network Interfaces from system: %s", err)
 			} else {
 				wg6 := &sync.WaitGroup{}
@@ -494,7 +494,7 @@ func (s *SystemCollector) Collect(ch chan<- prometheus.Metric) {
 			}
 
 			//process nethernetinterfaces
-			if ethernetInterfaces, err := system.EthernetInterfaces(); err != nil {
+			if ethernetInterfaces, err := system.EthernetInterfaces(); err != nil || ethernetInterfaces == nil{
 				log.Infof("Errors Getting ethernet Interfaces from system: %s", err)
 			} else {
 				wg7 := &sync.WaitGroup{}
