@@ -17,3 +17,9 @@ build/
 *.yaml
 
 redfish_exporter
+
+# Editor backup files
+*~
+
+# config file
+config.yml

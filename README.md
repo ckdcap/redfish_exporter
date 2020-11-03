@@ -1,6 +1,5 @@
 # redfish_exporter
-A prometheus expoter to get  metrics from redfish based servers such
-as lenovo servers.
+A prometheus exporter to get  metrics from redfish based servers such as lenovo/dell/Supermicro servers.
 
 ## Configuration
 
@@ -24,6 +23,16 @@ To build the redfish_exporter executable run the command:
 make build
 ```
 
+or build in centos 7 docker image
+```sh
+make docker-build-centos7
+```
+
+or build in centos 8 docker image
+```sh
+make docker-build-centos8
+```
+
 ## Running
 
 To run redfish_exporter do something like:
@@ -45,7 +54,7 @@ curl http://<redfish_exporter host>:9610/redfish?target=10.36.48.24
 ```
 or by pointing your favourite browser at this URL.
 
-## prometheus job conf
+## prometheus configuration
 
 You can then setup [Prometheus][3] to scrape the target using
 something like this in your Prometheus configuration files:
